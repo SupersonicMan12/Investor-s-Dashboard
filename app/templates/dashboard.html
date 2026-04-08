@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}" />
+  </head>
+  <body>
+    <main class="container">
+      <header>
+        <h1>{{ title }}</h1>
+        <p>{{ horizon }}</p>
+      </header>
+
+      <section>
+        <h2>Weekly Opportunities (Mock Data)</h2>
+        <ul class="cards">
+          {% for item in opportunities %}
+          <li class="card">
+            <h3>{{ item.symbol }} — {{ item.name }}</h3>
+            <p><strong>Confidence:</strong> {{ item.confidence }}</p>
+            <p>{{ item.thesis }}</p>
+          </li>
+          {% endfor %}
+        </ul>
+      </section>
+    </main>
+  </body>
+</html>
