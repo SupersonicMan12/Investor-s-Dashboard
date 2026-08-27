@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Watchlist · Investor's Dashboard{% endblock %}
+{% block content %}
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Watchlist</h2>
+      <p class="panel-sub">Tickers you're tracking, scored for the week ahead</p>
+    </div>
+
+    <form class="inline-form" method="post" action="/watchlist/add">
+      <input type="hidden" name="next_url" value="/watchlist" />
+      <label class="visually-hidden" for="watch-symbol">Ticker symbol</label>
+      <input id="watch-symbol" name="symbol" type="text" placeholder="e.g. NVDA" required
+             pattern="[A-Za-z.^-]{1,10}" autocomplete="off" />
+      <button type="submit">Add to watchlist</button>
+    </form>
+
+    {% if signals %}
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th scope="col">Symbol</th>
+            <th scope="col">Name</th>
+            <th scope="col" class="num-col">Price</th>
+            <th scope="col" class="num-col">Today</th>
+            <th scope="col" class="num-col">1W</th>
+            <th scope="col" class="num-col">Score</th>
+            <th scope="col">Trend</th>
+            <th scope="col">30d</th>
+            <th scope="col"><span class="visually-hidden">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in signals %}
+          <tr>
+            <td><a href="/symbol/{{ s.symbol }}" class="ticker">{{ s.symbol }}</a></td>
+            <td>{{ s.name }}</td>
+            <td class="num num-col">{{ s.price | money }}</td>
+            <td class="num num-col {{ 'up' if s.change_pct >= 0 else 'down' }}">{{ s.change_pct | signed_pct }}</td>
+            <td class="num num-col {{ 'up' if (s.week_return or 0) >= 0 else 'down' }}">
+              {% if s.week_return is not none %}{{ s.week_return | signed_pct }}{% else %}—{% endif %}
+            </td>
+            <td class="num num-col">{{ s.score }}</td>
+            <td>{{ s.trend }}</td>
+            <td>{{ sparkline(s.closes) | safe }}</td>
+            <td>
+              <form method="post" action="/watchlist/remove">
+                <input type="hidden" name="symbol" value="{{ s.symbol }}" />
+                <input type="hidden" name="next_url" value="/watchlist" />
+                <button type="submit" class="ghost small">Remove</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="empty-note">
+      Your watchlist is empty. Add a ticker above to track its weekly signal here
+      and on the main dashboard.
+    </p>
+    {% endif %}
+
+    {% if missing %}
+    <div class="banner" role="status">
+      No data found for: {{ missing | join(', ') }}. These may be invalid tickers.
+      {% for m in missing %}
+      <form class="inline" method="post" action="/watchlist/remove">
+        <input type="hidden" name="symbol" value="{{ m }}" />
+        <input type="hidden" name="next_url" value="/watchlist" />
+        <button type="submit" class="ghost small">Remove {{ m }}</button>
+      </form>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </section>
+{% endblock %}

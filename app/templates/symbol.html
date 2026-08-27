@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}{{ symbol }} · Investor's Dashboard{% endblock %}
+{% block content %}
+  {% if signal is none %}
+  <section class="panel">
+    <div class="panel-head"><h2>{{ symbol }} not found</h2></div>
+    <p class="empty-note">
+      We couldn't load data for “{{ symbol }}”. Check the ticker and try again.
+    </p>
+    <p><a class="back-link" href="/">&larr; Back to signals</a></p>
+  </section>
+  {% else %}
+  <nav class="breadcrumb"><a href="/">&larr; Back to signals</a></nav>
+
+  <section class="symbol-header">
+    <div>
+      <h1 class="ticker-lg">{{ signal.symbol }}</h1>
+      <p class="symbol-name">{{ signal.name }}</p>
+    </div>
+    <div class="symbol-quote num">
+      <span class="symbol-price">{{ signal.price | money }}</span>
+      <span class="symbol-change {{ 'up' if signal.change_pct >= 0 else 'down' }}">
+        {{ signal.change_pct | signed_pct }} today
+      </span>
+    </div>
+    <form method="post" action="{{ '/watchlist/remove' if in_watchlist else '/watchlist/add' }}">
+      <input type="hidden" name="symbol" value="{{ signal.symbol }}" />
+      <input type="hidden" name="next_url" value="/symbol/{{ signal.symbol }}" />
+      <button type="submit" class="{{ 'ghost' if in_watchlist else '' }}">
+        {{ 'Remove from watchlist' if in_watchlist else 'Add to watchlist' }}
+      </button>
+    </form>
+  </section>
+
+  {% if signal.is_stale %}
+  <div class="banner" role="status">
+    Live quotes are temporarily unavailable — showing the most recent cached data.
+  </div>
+  {% endif %}
+
+  <section class="panel">
+    <div class="panel-head"><h2>6-month price history</h2></div>
+    <div class="chart-wrap">{{ chart_svg | safe }}</div>
+  </section>
+
+  <div class="detail-grid">
+    <section class="panel" aria-label="Signal summary">
+      <div class="panel-head">
+        <h2>1-week signal</h2>
+        <span class="badge badge-{{ signal.confidence | lower }}">{{ signal.confidence }} confidence</span>
+      </div>
+      <div class="score score-lg" aria-label="Signal score {{ signal.score }} out of 100">
+        <div class="score-bar"><span style="width: {{ signal.score }}%"></span></div>
+        <span class="score-num num">{{ signal.score }}/100</span>
+      </div>
+      <p class="thesis">{{ signal.thesis }}</p>
+    </section>
+
+    <section class="panel" aria-label="Key indicators">
+      <div class="panel-head"><h2>Key indicators</h2></div>
+      <dl class="indicator-grid num">
+        <div><dt>1-week return</dt><dd class="{{ 'up' if (signal.week_return or 0) >= 0 else 'down' }}">{% if signal.week_return is not none %}{{ signal.week_return | signed_pct }}{% else %}—{% endif %}</dd></div>
+        <div><dt>1-month return</dt><dd class="{{ 'up' if (signal.month_return or 0) >= 0 else 'down' }}">{% if signal.month_return is not none %}{{ signal.month_return | signed_pct }}{% else %}—{% endif %}</dd></div>
+        <div><dt>RSI (14)</dt><dd>{% if signal.rsi is not none %}{{ '%.1f' | format(signal.rsi) }}{% else %}—{% endif %}</dd></div>
+        <div><dt>Volatility (20d, ann.)</dt><dd>{% if signal.volatility is not none %}{{ '%.1f' | format(signal.volatility) }}%{% else %}—{% endif %}</dd></div>
+        <div><dt>Trend</dt><dd>{{ signal.trend }}</dd></div>
+      </dl>
+    </section>
+  </div>
+  {% endif %}
+{% endblock %}

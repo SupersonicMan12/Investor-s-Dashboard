@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Portfolio · Investor's Dashboard{% endblock %}
+{% block content %}
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Portfolio</h2>
+      <p class="panel-sub">Track positions against live prices</p>
+    </div>
+
+    {% if rows %}
+    <div class="summary-strip num">
+      <div class="summary-item">
+        <span class="summary-label">Market value</span>
+        <span class="summary-value">${{ total_value | money }}</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-label">Cost basis</span>
+        <span class="summary-value">${{ total_cost | money }}</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-label">Unrealized P&amp;L</span>
+        <span class="summary-value {{ 'up' if total_gain >= 0 else 'down' }}">
+          {{ '+' if total_gain >= 0 }}${{ total_gain | money }} ({{ total_gain_pct | signed_pct }})
+        </span>
+      </div>
+    </div>
+
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th scope="col">Symbol</th>
+            <th scope="col">Name</th>
+            <th scope="col" class="num-col">Shares</th>
+            <th scope="col" class="num-col">Avg cost</th>
+            <th scope="col" class="num-col">Price</th>
+            <th scope="col" class="num-col">Value</th>
+            <th scope="col" class="num-col">P&amp;L</th>
+            <th scope="col"><span class="visually-hidden">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td><a href="/symbol/{{ row.symbol }}" class="ticker">{{ row.symbol }}</a></td>
+            <td>{{ row.name }}</td>
+            <td class="num num-col">{{ '%g' | format(row.shares) }}</td>
+            <td class="num num-col">{{ row.cost_basis | money }}</td>
+            <td class="num num-col">{% if row.has_quote %}{{ row.price | money }}{% else %}—{% endif %}</td>
+            <td class="num num-col">{% if row.has_quote %}{{ row.value | money }}{% else %}—{% endif %}</td>
+            <td class="num num-col {{ 'up' if row.gain >= 0 else 'down' }}">
+              {% if row.has_quote %}{{ '+' if row.gain >= 0 }}{{ row.gain | money }} ({{ row.gain_pct | signed_pct }}){% else %}—{% endif %}
+            </td>
+            <td>
+              <form method="post" action="/portfolio/remove">
+                <input type="hidden" name="holding_id" value="{{ row.id }}" />
+                <button type="submit" class="ghost small">Remove</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="empty-note">
+      No positions yet. Add your first holding below to see live value and P&amp;L.
+    </p>
+    {% endif %}
+
+    <h3 class="form-title">Add a position</h3>
+    <form class="stacked-form" method="post" action="/portfolio/add">
+      <div class="field">
+        <label for="holding-symbol">Ticker</label>
+        <input id="holding-symbol" name="symbol" type="text" placeholder="e.g. AAPL" required
+               pattern="[A-Za-z.^-]{1,10}" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label for="holding-shares">Shares</label>
+        <input id="holding-shares" name="shares" type="number" step="any" min="0.0001" required />
+      </div>
+      <div class="field">
+        <label for="holding-cost">Avg cost per share ($)</label>
+        <input id="holding-cost" name="cost_basis" type="number" step="any" min="0" required />
+      </div>
+      <button type="submit">Add position</button>
+    </form>
+  </section>
+{% endblock %}
