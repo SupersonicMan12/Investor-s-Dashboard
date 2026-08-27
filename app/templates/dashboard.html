@@ -1,30 +1,116 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{ title }}</title>
-    <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}" />
-  </head>
-  <body>
-    <main class="container">
-      <header>
-        <h1>{{ title }}</h1>
-        <p>{{ horizon }}</p>
-      </header>
+{% extends "base.html" %}
+{% block title %}Signals · Investor's Dashboard{% endblock %}
+{% block content %}
+  {% if any_stale %}
+  <div class="banner" role="status">
+    Live quotes are temporarily unavailable — showing the most recent cached data.
+  </div>
+  {% endif %}
 
-      <section>
-        <h2>Weekly Opportunities (Mock Data)</h2>
-        <ul class="cards">
-          {% for item in opportunities %}
-          <li class="card">
-            <h3>{{ item.symbol }} — {{ item.name }}</h3>
-            <p><strong>Confidence:</strong> {{ item.confidence }}</p>
-            <p>{{ item.thesis }}</p>
-          </li>
-          {% endfor %}
-        </ul>
+  <section class="market-pulse" aria-label="Market pulse">
+    <h2 class="section-label">Market pulse</h2>
+    <div class="pulse-grid">
+      {% for quote in indices %}
+      <a class="pulse-card" href="/symbol/{{ quote.symbol }}">
+        <span class="pulse-name">{{ quote.name }}</span>
+        <span class="pulse-price num">{{ quote.price | money }}</span>
+        <span class="pulse-change num {{ 'up' if quote.change_pct >= 0 else 'down' }}">
+          {{ quote.change_pct | signed_pct }}
+        </span>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+
+  <div class="dashboard-grid">
+    <section class="panel" aria-label="Weekly opportunities">
+      <div class="panel-head">
+        <h2>This week's signals</h2>
+        <p class="panel-sub">Ranked for a 1-week horizon by momentum, trend, RSI, and volatility</p>
+      </div>
+      <ol class="signal-list">
+        {% for s in opportunities %}
+        <li class="signal-card">
+          <div class="signal-rank num">{{ loop.index }}</div>
+          <div class="signal-main">
+            <div class="signal-title">
+              <a href="/symbol/{{ s.symbol }}" class="ticker">{{ s.symbol }}</a>
+              <span class="name">{{ s.name }}</span>
+              <span class="badge badge-{{ s.confidence | lower }}">{{ s.confidence }}</span>
+            </div>
+            <p class="thesis">{{ s.thesis }}</p>
+            <div class="signal-stats num">
+              <span>Price <strong>{{ s.price | money }}</strong></span>
+              {% if s.week_return is not none %}
+              <span>1W <strong class="{{ 'up' if s.week_return >= 0 else 'down' }}">{{ s.week_return | signed_pct }}</strong></span>
+              {% endif %}
+              {% if s.rsi is not none %}<span>RSI <strong>{{ '%.0f' | format(s.rsi) }}</strong></span>{% endif %}
+              <span>Trend <strong>{{ s.trend }}</strong></span>
+            </div>
+          </div>
+          <div class="signal-side">
+            {{ sparkline(s.closes) | safe }}
+            <div class="score" aria-label="Signal score {{ s.score }} out of 100">
+              <div class="score-bar"><span style="width: {{ s.score }}%"></span></div>
+              <span class="score-num num">{{ s.score }}</span>
+            </div>
+          </div>
+        </li>
+        {% else %}
+        <li class="empty-note">No signals available right now. Try refreshing in a moment.</li>
+        {% endfor %}
+      </ol>
+    </section>
+
+    <aside class="side-column">
+      <section class="panel" aria-label="Sector momentum">
+        <div class="panel-head"><h2>Sector momentum</h2></div>
+        <table class="mini-table">
+          <thead>
+            <tr><th scope="col">Sector</th><th scope="col" class="num-col">1W</th><th scope="col" class="num-col">Score</th></tr>
+          </thead>
+          <tbody>
+            {% for s in sectors %}
+            <tr>
+              <td><a href="/symbol/{{ s.symbol }}">{{ s.name }}</a></td>
+              <td class="num num-col {{ 'up' if (s.week_return or 0) >= 0 else 'down' }}">
+                {% if s.week_return is not none %}{{ s.week_return | signed_pct }}{% else %}—{% endif %}
+              </td>
+              <td class="num num-col">{{ s.score }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </section>
-    </main>
-  </body>
-</html>
+
+      <section class="panel" aria-label="Watchlist">
+        <div class="panel-head"><h2>Watchlist</h2></div>
+        {% if watchlist %}
+        <table class="mini-table">
+          <thead>
+            <tr><th scope="col">Symbol</th><th scope="col" class="num-col">Price</th><th scope="col" class="num-col">Today</th></tr>
+          </thead>
+          <tbody>
+            {% for s in watchlist %}
+            <tr>
+              <td><a href="/symbol/{{ s.symbol }}" class="ticker">{{ s.symbol }}</a></td>
+              <td class="num num-col">{{ s.price | money }}</td>
+              <td class="num num-col {{ 'up' if s.change_pct >= 0 else 'down' }}">{{ s.change_pct | signed_pct }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <p class="empty-note">Nothing here yet. Add a ticker to track it across the dashboard.</p>
+        {% endif %}
+        <form class="inline-form" method="post" action="/watchlist/add">
+          <input type="hidden" name="next_url" value="/" />
+          <label class="visually-hidden" for="watch-symbol">Ticker symbol</label>
+          <input id="watch-symbol" name="symbol" type="text" placeholder="e.g. NVDA" required
+                 pattern="[A-Za-z.^-]{1,10}" autocomplete="off" />
+          <button type="submit">Add to watchlist</button>
+        </form>
+      </section>
+    </aside>
+  </div>
+{% endblock %}

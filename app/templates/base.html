@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Investor's Dashboard{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="/">Investor's<span>Dashboard</span></a>
+        <nav aria-label="Main navigation">
+          <a href="/" class="{{ 'active' if active_page == 'dashboard' else '' }}">Signals</a>
+          <a href="/watchlist" class="{{ 'active' if active_page == 'watchlist' else '' }}">Watchlist</a>
+          <a href="/portfolio" class="{{ 'active' if active_page == 'portfolio' else '' }}">Portfolio</a>
+        </nav>
+        <span class="updated" title="Data refreshed">{{ updated_at }}</span>
+      </div>
+    </header>
+    <main class="container">
+      {% block content %}{% endblock %}
+    </main>
+    <footer class="footer">
+      <p>
+        Market data via Yahoo Finance, refreshed every 15 minutes.
+        Signals are for research only and are not investment advice.
+      </p>
+    </footer>
+  </body>
+</html>
